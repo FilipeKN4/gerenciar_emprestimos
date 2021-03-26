@@ -1,0 +1,12 @@
+version: "3"
+
+services:
+  django-rest:
+    build: ./loan_manager/
+    image: loan_management_django_rest
+    command: ./manage.py runserver 0.0.0.0:8000
+    ports: 
+    - "8000:8000"
+    container_name: loan_management_django_rest
+    volumes: 
+    - ./loan_manager/:/usr/app
