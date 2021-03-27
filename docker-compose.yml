@@ -1,12 +1,26 @@
 version: "3"
 
 services:
-  django-rest:
+  django:
     build: ./loan_manager/
-    image: loan_management_django_rest
+    image: loan_manager_django
     command: ./manage.py runserver 0.0.0.0:8000
     ports: 
-    - "8000:8000"
-    container_name: loan_management_django_rest
+      - "8000:8000"
+    container_name: loan_manager_django
     volumes: 
-    - ./loan_manager/:/usr/app
+      - ./loan_manager/:/usr/app
+    depends_on: 
+      - db
+  
+  db:
+    image: postgres:13
+    environment: 
+      - POSTGRES_DB=loan_manager_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+volumes: 
+  postgres_data:
