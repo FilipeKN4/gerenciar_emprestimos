@@ -14,8 +14,6 @@ urlpatterns = [
     # User authentication
     path('admin/', admin.site.urls),
     path('login/', obtain_auth_token, name='login'),
-    path('api-auth/', include('rest_framework.urls', namespace='rest_framework')),
-    
 
     # Apps urls
     path('', include('transactions.urls')),

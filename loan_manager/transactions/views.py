@@ -15,13 +15,22 @@ from transactions.models import Loan, Payment
 
 class TransactionsOverview(APIView):
     """Transactions overview."""
-    authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
     
-    def get(self, request, format=None):       
+    def get(self, request, format=None):
+        loan_urls = {
+            "list": "loans/",
+            "detail": "loans/<int:pk>/",
+        }
+        
+        payment_urls = {
+            "list": "payments/",
+            "detail": "payments/<int:pk>/",
+        }
+          
         transactions_urls = {
-            "Loans": "'loans/'",
-            "Payments": "payments/",
+            "loans": loan_urls,
+            "payments":payment_urls,
         }          
     
         return Response(transactions_urls)
@@ -33,12 +42,18 @@ class LoansList(APIView):
     permission_classes = [IsAuthenticated]
     
     def get(self, request, format=None):
-        loans = Loan.objects.all()
-        serializer = LoanSerializer(loans, many=True)
+        if request.user.is_admin:
+            loans = Loan.objects.all()
+        else:
+            loans = Loan.objects.filter(user_account=request.user)
+        serializer = LoanSerializer(loans, 
+                                    context={'request': request}, 
+                                    many=True)
         return Response(serializer.data)
 
     def post(self, request, format=None):
-        serializer = LoanSerializer(data=request.data)
+        serializer = LoanSerializer(data=request.data, 
+                                    context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -57,12 +72,25 @@ class LoanDetail(APIView):
 
     def get(self, request, pk, format=None):
         loan = self.get_object(pk)
-        serializer = LoanSerializer(loan)
+        if loan.user_account != request.user:
+            return Response(
+                {'detail': "You don't have permission to view this content."}
+            )
+        
+        serializer = LoanSerializer(loan, 
+                                    context={'request': request})
         return Response(serializer.data)
 
     def put(self, request, pk, format=None):
         loan = self.get_object(pk)
-        serializer = LoanSerializer(loan, data=request.data)
+        if loan.user_account != request.user:
+            return Response(
+                {'detail': "You don't have permission to edit this content."}
+            )
+        
+        serializer = LoanSerializer(loan, 
+                                    data=request.data, 
+                                    context={'request': request})
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -70,5 +98,10 @@ class LoanDetail(APIView):
 
     def delete(self, request, pk, format=None):
         loan = self.get_object(pk)
+        if loan.user_account != request.user:
+            return Response(
+                {'detail': "You don't have permission to delete this content."}
+            )
+        
         loan.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
