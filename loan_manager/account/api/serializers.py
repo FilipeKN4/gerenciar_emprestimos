@@ -12,10 +12,16 @@ class AccountSerializer(serializers.HyperlinkedModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        user = Account(
+        user_account = Account.objects.create_user(
             email=validated_data['email'],
-            username=validated_data['username']
+            username=validated_data['username'],
+            password=validated_data['password']
         )
-        user.set_password(validated_data['password'])
-        user.save()
-        return user
+        return user_account
+    
+    def update(self, instance, validated_data):
+        instance.email = validated_data['email']
+        instance.username = validated_data['username']
+        instance.set_password(validated_data['password'])
+        instance.save()
+        return instance
