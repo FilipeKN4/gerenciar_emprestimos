@@ -24,7 +24,8 @@ class Loan(models.Model):
     ip_address = models.CharField(max_length=30, 
                                   default=current_ip_address)
     request_date = models.DateTimeField(auto_now_add=True)
-    end_date = models.DateTimeField(null=True)
+    end_date = models.DateTimeField(null=True, 
+                                    blank=True)
     bank = models.CharField(max_length=100)
     client = models.CharField(max_length=100)
     interest_type = models.IntegerField(choices=InterestType.choices, 

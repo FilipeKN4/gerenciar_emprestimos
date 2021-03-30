@@ -36,13 +36,21 @@ class LoanSerializer(serializers.ModelSerializer):
     
     def loan_validations(self, validated_data):
         nominal_value = validated_data['nominal_value']
+        
+        if 'end_date' not in validated_data.keys():
+            raise serializers.ValidationError(
+                {'end_date':
+                    ["Provide a valid value."]
+                }
+            )
         end_date = validated_data['end_date']
+        
         if 'interest_type' not in validated_data.keys():
             raise serializers.ValidationError(
-                    {'interest_type':
-                        ["This field is required."]
-                    }
-                )
+                {'interest_type':
+                    ["This field is required."]
+                }
+            )
         interest_type = validated_data['interest_type']
         if interest_type == 2:
             if not end_date:
