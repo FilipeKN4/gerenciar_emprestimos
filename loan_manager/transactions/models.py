@@ -27,12 +27,39 @@ class Loan(models.Model):
         return 'Loan from {} to {} on value of {}'.format(self.bank, 
                                                      self.client, 
                                                      self.nominal_value)
+    
+    @property
+    def get_interest_value(self):
+        interest_value = self.nominal_value * (self.interest_rate/100)
+        return interest_value
+    
+    @property
+    def get_full_debt(self):
+        full_debt = self.nominal_value + self.get_interest_value
+        return full_debt
+    
+    @property
+    def get_outstanding_balance(self):
+        payments = Payment.objects.filter(loan=self)
+        
+        outstanding_balance = self.get_full_debt
+        for payment in payments:
+            outstanding_balance -= payment.value
+        return outstanding_balance
+    
+    @property
+    def get_total_paid(self):
+        payments = Payment.objects.filter(loan=self)
+        total_paid = 0
+        for payment in payments:
+            total_paid += payment.value
+        return total_paid
 
 
 class Payment(models.Model):
     loan = models.ForeignKey(Loan, 
                              on_delete=models.CASCADE)
-    date = models.DateTimeField(auto_now_add=True)
+    date = models.DateTimeField()
     value = models.DecimalField(max_digits=14, 
                                 decimal_places=2)
     

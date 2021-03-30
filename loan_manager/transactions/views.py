@@ -37,7 +37,7 @@ class TransactionsOverview(APIView):
     
 
 class LoansList(APIView):
-    """List all loans or create a new loan from a user."""
+    """List all loans or create a new loan."""
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated]
     
@@ -72,7 +72,7 @@ class LoanDetail(APIView):
 
     def get(self, request, pk, format=None):
         loan = self.get_object(pk)
-        if loan.user_account != request.user:
+        if loan.user_account != request.user and not request.user.is_admin:
             return Response(
                 {'detail': "You don't have permission to view this content."}
             )
@@ -104,4 +104,117 @@ class LoanDetail(APIView):
             )
         
         loan.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class PaymentsPerLoan(APIView):
+    """List all payments of a loan."""
+    pagination_class = PageNumberPagination
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, pk, format=None):
+        loan = Loan.objects.get(pk=pk)
+        if loan.user_account != request.user and not request.user.is_admin:
+            return Response(
+                {'detail': "You don't have permission to view this content."}
+            )
+        payments = Payment.objects.filter(loan=loan)
+        serializer = PaymentSerializer(payments, 
+                                       context={'request': request}, 
+                                       many=True)
+        return Response(serializer.data)
+
+  
+class LoanOutstandingBalance(APIView):
+    """Retrive the loan's outstanding balance."""
+    pagination_class = PageNumberPagination
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, pk, format=None):
+        loan = Loan.objects.get(pk=pk)
+        if loan.user_account != request.user and not request.user.is_admin:
+            return Response(
+                {'detail': "You don't have permission to view this content."}
+            )
+        
+        full_debt = loan.get_full_debt
+        total_paid = loan.get_total_paid
+        outstanding_balance = loan.get_outstanding_balance
+        outstanding_balance_info = {
+            'nominal_value': loan.nominal_value,
+            'full_debt': full_debt,
+            'total_paid': total_paid,
+            'outstanding_balance': outstanding_balance
+        }
+        return Response(outstanding_balance_info)
+    
+    
+class PaymentsList(APIView):
+    """List all payments or create a new payment."""
+    pagination_class = PageNumberPagination
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request, format=None):
+        if request.user.is_admin:
+            payments = Payment.objects.all()
+        else:
+            payments = Payment.objects.filter(loan__user_account=request.user)
+        serializer = PaymentSerializer(payments, 
+                                       context={'request': request}, 
+                                       many=True)
+        return Response(serializer.data)
+
+    def post(self, request, format=None):
+        serializer = PaymentSerializer(data=request.data, 
+                                       context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PaymentDetail(APIView):
+    """Retrieve, update or delete a payment instance."""
+    permission_classes = [IsAuthenticated]
+    
+    def get_object(self, pk):
+        try:
+            return Payment.objects.get(pk=pk)
+        except Payment.DoesNotExist:
+            raise Http404
+
+    def get(self, request, pk, format=None):
+        payment = self.get_object(pk)
+        if payment.loan.user_account != request.user and not request.user.is_admin:
+            return Response(
+                {'detail': "You don't have permission to view this content."}
+            )
+        
+        serializer = PaymentSerializer(payment, 
+                                    context={'request': request})
+        return Response(serializer.data)
+
+    def put(self, request, pk, format=None):
+        payment = self.get_object(pk)
+        if payment.loan.user_account != request.user:
+            return Response(
+                {'detail': "You don't have permission to edit this content."}
+            )
+        
+        serializer = PaymentSerializer(payment, 
+                                    data=request.data, 
+                                    context={'request': request})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request, pk, format=None):
+        payment = self.get_object(pk)
+        if payment.loan.user_account != request.user:
+            return Response(
+                {'detail': "You don't have permission to delete this content."}
+            )
+    
+        payment.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
