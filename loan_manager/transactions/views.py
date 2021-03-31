@@ -54,7 +54,7 @@ class LoansList(APIView):
     def post(self, request, format=None):
         serializer = LoanSerializer(data=request.data, 
                                     context={'request': request})
-        if serializer.is_valid():
+        if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -91,7 +91,7 @@ class LoanDetail(APIView):
         serializer = LoanSerializer(loan, 
                                     data=request.data, 
                                     context={'request': request})
-        if serializer.is_valid():
+        if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -123,30 +123,6 @@ class PaymentsPerLoan(APIView):
                                        context={'request': request}, 
                                        many=True)
         return Response(serializer.data)
-
-  
-class LoanOutstandingBalance(APIView):
-    """Retrive the loan's outstanding balance."""
-    pagination_class = PageNumberPagination
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request, pk, format=None):
-        loan = Loan.objects.get(pk=pk)
-        if loan.user_account != request.user and not request.user.is_admin:
-            return Response(
-                {'detail': "You don't have permission to view this content."}
-            )
-        
-        full_debt = loan.get_full_debt
-        total_paid = loan.get_total_paid
-        outstanding_balance = loan.get_outstanding_balance
-        outstanding_balance_info = {
-            'nominal_value': loan.nominal_value,
-            'full_debt': full_debt,
-            'total_paid': total_paid,
-            'outstanding_balance': outstanding_balance
-        }
-        return Response(outstanding_balance_info)
     
     
 class PaymentsList(APIView):
@@ -167,7 +143,7 @@ class PaymentsList(APIView):
     def post(self, request, format=None):
         serializer = PaymentSerializer(data=request.data, 
                                        context={'request': request})
-        if serializer.is_valid():
+        if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -204,7 +180,7 @@ class PaymentDetail(APIView):
         serializer = PaymentSerializer(payment, 
                                     data=request.data, 
                                     context={'request': request})
-        if serializer.is_valid():
+        if serializer.is_valid(raise_exception=True):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

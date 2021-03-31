@@ -1,8 +1,10 @@
 # Libs imports
 import socket
+import datetime
 
 # Django imports
 from django.db import models
+from django.db.models import Sum
 
 
 def current_ip_address():
@@ -21,11 +23,9 @@ class Loan(models.Model):
                                         decimal_places=2)
     interest_rate = models.DecimalField(max_digits=5, 
                                         decimal_places=2)
-    ip_address = models.CharField(max_length=30, 
-                                  default=current_ip_address)
-    request_date = models.DateTimeField(auto_now_add=True)
-    end_date = models.DateTimeField(null=True, 
-                                    blank=True)
+    ip_address = models.GenericIPAddressField(null=True)
+    request_date = models.DateField(auto_now_add=True)
+    end_date = models.DateField(default=datetime.date.today)
     bank = models.CharField(max_length=100)
     client = models.CharField(max_length=100)
     interest_type = models.IntegerField(choices=InterestType.choices, 
@@ -59,16 +59,12 @@ class Loan(models.Model):
     
     @property
     def get_full_debt(self):
-        full_debt = self.nominal_value + self.get_interest_value
-        return full_debt
+        return self.nominal_value + self.get_interest_value
     
     @property
     def get_total_paid(self):
-        payments = Payment.objects.filter(loan=self)
-        total_paid = 0
-        for payment in payments:
-            total_paid += payment.value
-        return total_paid
+        payments = Payment.objects.filter(loan=self).aggregate(Sum('value'))
+        return payments['value__sum'] if payments['value__sum'] else 0
     
     @property
     def get_outstanding_balance(self):
@@ -79,11 +75,11 @@ class Loan(models.Model):
 class Payment(models.Model):
     loan = models.ForeignKey(Loan, 
                              on_delete=models.CASCADE)
-    date = models.DateTimeField()
+    date = models.DateField()
     value = models.DecimalField(max_digits=14, 
                                 decimal_places=2)
     
     def __str__(self):
-        return 'Payment from {} to {} on value of {}'.format(self.client, 
-                                                             self.bank, 
+        return 'Payment from {} to {} on value of {}'.format(self.loan.client, 
+                                                             self.loan.bank, 
                                                              self.value)
