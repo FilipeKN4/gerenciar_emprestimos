@@ -1,4 +1,5 @@
 # Libs imports
+import datetime
 from ipware import get_client_ip
 
 # Django imports
@@ -50,6 +51,16 @@ class LoanSerializer(serializers.ModelSerializer):
             if data['nominal_value'] < instance.get_total_paid:
                 raise serializers.ValidationError(
                     {'detail':"The nominal value can't be less than the total paid."}
+                )
+            
+            if data['end_date'] <= instance.request_date:
+                raise serializers.ValidationError(
+                    {'detail':"The end date needs to be greater than the request date."}
+                )
+        else:
+            if data['end_date'] <= datetime.date.today():
+                raise serializers.ValidationError(
+                    {'detail':"The end date needs to be greater than the request date."}
                 )
         return data
     
@@ -109,6 +120,15 @@ class PaymentSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     {'detail':"The total paid needs to be less or equal than the full debt."}
                 )
+
+        if data['date'] < data['loan'].request_date:
+            raise serializers.ValidationError(
+                {'detail':"The date needs to be equal or greater than the loan's request date."}
+            )
+        elif data['date'] > data['loan'].end_date:
+            raise serializers.ValidationError(
+                {'detail':"The date needs to be equal or less than the loan's end date."}
+            )
         return data
         
     def validate_value(self, value):

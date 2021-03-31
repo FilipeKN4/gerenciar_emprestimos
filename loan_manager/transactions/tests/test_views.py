@@ -24,10 +24,14 @@ class TestTransactionsAPIViews(APITestCase):
             email='daenerys@mail.com',
             password='password123'
         )
+        
+        year = datetime.date.today().year
+        month = datetime.date.today().month
         self.loan = Loan.objects.create(
             user_account=self.first_account,
             nominal_value=20000,
             interest_rate=5.5,
+            end_date=datetime.date(year+1, month, 20),
             bank='BRB',
             client='Jon',
             interest_type=1
@@ -36,6 +40,7 @@ class TestTransactionsAPIViews(APITestCase):
             user_account=self.second_account,
             nominal_value=20000,
             interest_rate=5.5,
+            end_date=datetime.date(year+1, month, 20),
             bank='BRB',
             client='Daenerys',
             interest_type=1
@@ -102,17 +107,21 @@ class TestTransactionsAPIViews(APITestCase):
     # Tests for POST requests
     def test_loan_with_simple_interest_post(self):
         loans_length = Loan.objects.all().count()
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year+1, month)
         data = { 
             'nominal_value': 20000,
             'interest_rate': 5.5,
-            'end_date': '2021-10-10',
+            'end_date': date,
             'bank': 'BRB',
             'client': 'Jon',
             'interest_type': 1
         }
         response = self.client.post(reverse('loans_list'), data)
         last_loan = Loan.objects.last()
-        request_date  = last_loan.request_date.strftime("%Y-%m-%d") 
+        request_date = last_loan.request_date.strftime("%Y-%m-%d")
+        end_date = last_loan.end_date.strftime("%Y-%m-%d")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data, {'id': last_loan.pk,  
                                          'user_account': last_loan.user_account.pk,
@@ -121,7 +130,7 @@ class TestTransactionsAPIViews(APITestCase):
                                          'interest_rate':'5.50', 
                                          'ip_address': last_loan.ip_address,
                                          'request_date': request_date,
-                                         'end_date': '2021-10-10',
+                                         'end_date': end_date,
                                          'bank':'BRB', 
                                          'client':'Jon',  
                                          'full_debt': last_loan.get_full_debt, 
@@ -131,18 +140,22 @@ class TestTransactionsAPIViews(APITestCase):
     
     def test_loan_post_for_other_users(self):
         loans_length = Loan.objects.all().count()
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year+1, month)
         data = {
             'user_account': self.second_account.pk, 
             'nominal_value': 20000,
             'interest_rate': 5.5,
-            'end_date': '2021-10-10',
+            'end_date': date,
             'bank': 'BRB',
             'client': 'Jon',
             'interest_type': 1
         }
         response = self.client.post(reverse('loans_list'), data)
         last_loan = Loan.objects.last()
-        request_date  = last_loan.request_date.strftime("%Y-%m-%d") 
+        request_date  = last_loan.request_date.strftime("%Y-%m-%d")
+        end_date = last_loan.end_date.strftime("%Y-%m-%d")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data, {'id': last_loan.pk,  
                                          'user_account': last_loan.user_account.pk,
@@ -151,7 +164,7 @@ class TestTransactionsAPIViews(APITestCase):
                                          'interest_rate':'5.50', 
                                          'ip_address': last_loan.ip_address,
                                          'request_date': request_date,
-                                         'end_date': '2021-10-10',
+                                         'end_date': end_date,
                                          'bank':'BRB', 
                                          'client':'Jon',  
                                          'full_debt': last_loan.get_full_debt, 
@@ -162,35 +175,59 @@ class TestTransactionsAPIViews(APITestCase):
     
     def test_loan_post_with_negative_nominal_value(self):
         loans_length = Loan.objects.all().count()
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year+1, month)
         data = {
             'user_account': self.first_account.pk, 
             'nominal_value': -20000,
             'interest_rate': 5.5,
-            'end_date': '2021-10-10',
+            'end_date': date,
+            'bank': 'BRB',
+            'client': 'Jon',
+            'interest_type': 1
+        }
+        response = self.client.post(reverse('loans_list'), data) 
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                                 "The value needs to be greater than zero.")
+    
+    def test_loan_post_with_end_date_less_than_request_date(self):
+        loans_length = Loan.objects.all().count()
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year-1, month)
+        data = {
+            'user_account': self.first_account.pk, 
+            'nominal_value': 20000,
+            'interest_rate': 5.5,
+            'end_date': date,
             'bank': 'BRB',
             'client': 'Jon',
             'interest_type': 1
         }
         response = self.client.post(reverse('loans_list'), data)
-        last_loan = Loan.objects.last()
-        request_date  = last_loan.request_date.strftime("%Y-%m-%d") 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertRaisesMessage(response.data, 
-                                 "The value needs to be greater than zero.")
+                                 "The end date needs to be greater than the request date.")
     
     def test_loan_with_compound_interest_post(self):
         loans_length = Loan.objects.all().count()
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-20'.format(year+1, month)
         data = { 
             'nominal_value': 15000,
             'interest_rate': 6.5,
-            'end_date': '2021-05-20',
+            'end_date': date,
             'bank': 'BRB',
             'client': 'Jon',
             'interest_type': 2
         }
         response = self.client.post(reverse('loans_list'), data)
         last_loan = Loan.objects.last()
-        request_date  = last_loan.request_date.strftime("%Y-%m-%d") 
+        request_date = last_loan.request_date.strftime("%Y-%m-%d") 
+        end_date = last_loan.end_date.strftime("%Y-%m-%d")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data, {'id': last_loan.pk,
                                          'user_account': last_loan.user_account.pk,
@@ -199,7 +236,7 @@ class TestTransactionsAPIViews(APITestCase):
                                          'interest_rate':'6.50', 
                                          'ip_address': last_loan.ip_address,
                                          'request_date': request_date,
-                                         'end_date': '2021-05-20',
+                                         'end_date': end_date,
                                          'bank':'BRB', 
                                          'client':'Jon',  
                                          'full_debt': last_loan.get_full_debt, 
@@ -209,25 +246,32 @@ class TestTransactionsAPIViews(APITestCase):
     
     def test_payment_post(self):
         payments_length = Payment.objects.all().count()
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-15'.format(year+1, month)
         data = {
             'loan': self.loan.pk, 
-            'date': '2021-05-20',
+            'date': date,
             'value': 5000,
         }
         response = self.client.post(reverse('payments_list'), data)
         last_payment = Payment.objects.last()
+        date = last_payment.date.strftime("%Y-%m-%d")
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data, {'id': last_payment.pk,  
                                          'value':'5000.00', 
-                                         'date': '2021-05-20', 
+                                         'date': date, 
                                          'loan': last_payment.loan.pk})
         self.assertEqual(Payment.objects.all().count(), payments_length+1)
         
     def test_payment_post_for_other_users_loan(self):
         payments_length = Payment.objects.all().count()
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-15'.format(year+1, month)
         data = {
             'loan': self.second_loan.pk, 
-            'date': '2021-05-20',
+            'date': date,
             'value': 5000,
         }
         response = self.client.post(reverse('payments_list'), data)
@@ -237,9 +281,12 @@ class TestTransactionsAPIViews(APITestCase):
     
     def test_payment_post_bigger_than_loan(self):
         payments_length = Payment.objects.all().count()
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-15'.format(year+1, month)
         data = {
             'loan': self.loan.pk, 
-            'date': '2021-05-20',
+            'date': date,
             'value': 30000,
         }
         response = self.client.post(reverse('payments_list'), data)
@@ -249,23 +296,59 @@ class TestTransactionsAPIViews(APITestCase):
     
     def test_payment_post_with_negative_value(self):
         payments_length = Payment.objects.all().count()
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-15'.format(year+1, month)
         data = {
             'loan': self.second_loan.pk, 
-            'date': '2021-05-20',
+            'date': date,
             'value': -5000,
         }
         response = self.client.post(reverse('payments_list'), data)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertRaisesMessage(response.data, 
                                  "The value needs to be greater than zero.")
+        
+    def test_payment_post_with_date_less_than_loans_request_date(self):
+        payments_length = Payment.objects.all().count()
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-15'.format(year-1, month)
+        data = {
+            'loan': self.second_loan.pk, 
+            'date': date,
+            'value': -5000,
+        }
+        response = self.client.post(reverse('payments_list'), data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                                 "The date needs to be equal or greater than the loan's request date.")
+        
+    def test_payment_post_with_date_greater_than_loans_end_date(self):
+        payments_length = Payment.objects.all().count()
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-15'.format(year+2, month)
+        data = {
+            'loan': self.second_loan.pk, 
+            'date': date,
+            'value': -5000,
+        }
+        response = self.client.post(reverse('payments_list'), data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                                 "The date needs to be equal or less than the loan's end date.")
     
     # Tests for PUT requests
     def test_loan_put(self):
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year+1, month)
         data = {
             'user_account': self.first_account.pk,
             'nominal_value': 25000,
             'interest_rate': 7.5,
-            'end_date': '2021-10-10',
+            'end_date': date,
             'bank': 'BRB',
             'client': 'Jon Snow',
             'interest_type': 1
@@ -274,7 +357,8 @@ class TestTransactionsAPIViews(APITestCase):
                                            args=[self.loan.pk]), 
                                    data)
         loan = Loan.objects.get(pk=self.loan.pk)
-        request_date  = loan.request_date.strftime("%Y-%m-%d") 
+        request_date = loan.request_date.strftime("%Y-%m-%d") 
+        end_date = loan.end_date.strftime("%Y-%m-%d")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, {'id': loan.pk,
                                          'user_account': self.first_account.pk,
@@ -283,7 +367,7 @@ class TestTransactionsAPIViews(APITestCase):
                                          'interest_rate':'7.50', 
                                          'ip_address': loan.ip_address,
                                          'request_date': request_date,
-                                         'end_date': '2021-10-10',
+                                         'end_date': end_date,
                                          'bank':'BRB', 
                                          'client':'Jon Snow', 
                                          'full_debt': loan.get_full_debt, 
@@ -291,10 +375,13 @@ class TestTransactionsAPIViews(APITestCase):
                                          'outstanding_balance': loan.get_outstanding_balance})
         
     def test_loan_put_with_nominal_value_less_than_total_paid(self):
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year+1, month)
         data = {
             'nominal_value': 2000,
             'interest_rate': 7.5,
-            'end_date': '2021-10-10',
+            'end_date': date,
             'bank': 'BRB',
             'client': 'Jon Snow',
             'interest_type': 1
@@ -307,10 +394,13 @@ class TestTransactionsAPIViews(APITestCase):
                                  "The nominal value can't be less than the total paid.")
     
     def test_loan_put_with_negative_nominal_value(self):
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year+1, month)
         data = {
             'nominal_value': -2000,
             'interest_rate': 7.5,
-            'end_date': '2021-10-10',
+            'end_date': date,
             'bank': 'BRB',
             'client': 'Jon Snow',
             'interest_type': 1
@@ -321,13 +411,35 @@ class TestTransactionsAPIViews(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertRaisesMessage(response.data, 
                                  "The value needs to be greater than zero.")
+        
+    def test_loan_put_with_end_date_less_than_request_date(self):
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year-1, month)
+        data = {
+            'nominal_value': -2000,
+            'interest_rate': 7.5,
+            'end_date': date,
+            'bank': 'BRB',
+            'client': 'Jon Snow',
+            'interest_type': 1
+        }
+        response = self.client.put(reverse('loan_detail', 
+                                           args=[self.loan.pk]), 
+                                   data) 
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                                 "The end date needs to be greater than the request date.")
     
     def test_loan_put_for_other_users(self):
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year+1, month)
         data = {
             'user_account': self.second_account.pk,
             'nominal_value': 20000,
             'interest_rate': 7.5,
-            'end_date': '2021-10-10',
+            'end_date': date,
             'bank': 'BRB',
             'client': 'Jon Snow',
             'interest_type': 1
@@ -337,6 +449,7 @@ class TestTransactionsAPIViews(APITestCase):
                                    data)
         loan = Loan.objects.get(pk=self.loan.pk)
         request_date  = loan.request_date.strftime("%Y-%m-%d")
+        end_date = loan.end_date.strftime("%Y-%m-%d")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, {'id': loan.pk,
                                          'user_account': self.first_account.pk,
@@ -345,7 +458,7 @@ class TestTransactionsAPIViews(APITestCase):
                                          'interest_rate':'7.50', 
                                          'ip_address': loan.ip_address,
                                          'request_date': request_date,
-                                         'end_date': '2021-10-10',
+                                         'end_date': end_date,
                                          'bank':'BRB', 
                                          'client':'Jon Snow', 
                                          'full_debt': loan.get_full_debt, 
@@ -354,25 +467,32 @@ class TestTransactionsAPIViews(APITestCase):
         self.assertEqual(loan.user_account, self.first_account)
     
     def test_payment_put(self):
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year+1, month)
         data = {
             'loan': self.loan.pk, 
-            'date': '2021-06-20',
+            'date': date,
             'value': 7000,
         }
         response = self.client.put(reverse('payment_detail', 
                                            args=[self.payment.pk]), 
                                    data)
         payment = Payment.objects.get(pk=self.payment.pk)
+        date = payment.date.strftime("%Y-%m-%d")
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, {'id': payment.pk,  
                                          'value':'7000.00', 
-                                         'date': '2021-06-20', 
+                                         'date': date,
                                          'loan': payment.loan.pk})
     
     def test_payment_put_with_value_bigger_than_loan(self):
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year+1, month)
         data = {
             'loan': self.loan.pk, 
-            'date': '2021-06-20',
+            'date': date,
             'value': 30000,
         }
         response = self.client.put(reverse('payment_detail', 
@@ -383,9 +503,12 @@ class TestTransactionsAPIViews(APITestCase):
                                  "The total paid needs to be less or equal than the full debt.")
     
     def test_payment_put_with_negative_value(self):
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year+1, month)
         data = {
             'loan': self.loan.pk, 
-            'date': '2021-06-20',
+            'date': date,
             'value': -3000,
         }
         response = self.client.put(reverse('payment_detail', 
@@ -396,9 +519,12 @@ class TestTransactionsAPIViews(APITestCase):
                                  "The value needs to be greater than zero.")
     
     def test_payment_put_to_other_users_loan(self):
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year+1, month)
         data = {
             'loan': self.second_loan.pk, 
-            'date': '2021-06-20',
+            'date': date,
             'value': 3000,
         }
         response = self.client.put(reverse('payment_detail', 
@@ -407,6 +533,38 @@ class TestTransactionsAPIViews(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertRaisesMessage(response.data, 
                                  "You need to be the loan's user.")
+        
+    def test_payment_with_date_less_than_loans_request_date(self):
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year-1, month)
+        data = {
+            'loan': self.second_loan.pk, 
+            'date': date,
+            'value': 3000,
+        }
+        response = self.client.put(reverse('payment_detail', 
+                                           args=[self.payment.pk]), 
+                                   data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                                 "The date needs to be equal or greater than the loan's request date.")
+    
+    def test_payment_with_date_greater_than_loans_end_date(self):
+        year = datetime.date.today().year
+        month = datetime.date.today().month
+        date = '{}-{}-10'.format(year+2, month)
+        data = {
+            'loan': self.second_loan.pk, 
+            'date': date,
+            'value': 3000,
+        }
+        response = self.client.put(reverse('payment_detail', 
+                                           args=[self.payment.pk]), 
+                                   data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                                 "The date needs to be equal or less than the loan's end date.")
     
     # Tests for DELETE requests
     def test_loan_delete(self):
