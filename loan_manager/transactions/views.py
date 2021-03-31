@@ -1,8 +1,6 @@
 # Django imports
-from django.http import HttpResponse, Http404
+from django.http import Http404
 from rest_framework import status
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.generics import ListAPIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -21,6 +19,7 @@ class TransactionsOverview(APIView):
         loan_urls = {
             "list": "loans/",
             "detail": "loans/<int:pk>/",
+            "payments_per_loan": "loans/<int:pk>/payments/"
         }
         
         payment_urls = {

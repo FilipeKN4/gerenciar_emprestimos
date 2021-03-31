@@ -32,10 +32,18 @@ class TestTransactionsAPIViews(APITestCase):
             client='Jon',
             interest_type=1
         )
+        self.second_loan = Loan.objects.create(
+            user_account=self.second_account,
+            nominal_value=20000,
+            interest_rate=5.5,
+            bank='BRB',
+            client='Daenerys',
+            interest_type=1
+        )
         self.payment = Payment.objects.create(
             loan = self.loan,
             value = 2500,
-            date = datetime.datetime.now()
+            date = datetime.date.today()
         )
         self.login()
         
@@ -74,18 +82,6 @@ class TestTransactionsAPIViews(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, 
                          {"detail": "You don't have permission to view this content."})
-        
-    def test_loan_outstanding_balance(self): 
-        response = self.client.get(reverse('loan_outstanding_balance', args=[self.loan.pk]))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-    
-    def test_loan_outstanding_other_user(self):
-        self.client.logout()
-        self.client.force_authenticate(self.second_account)
-        response = self.client.get(reverse('loan_outstanding_balance', args=[self.loan.pk]))
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, 
-                         {"detail": "You don't have permission to view this content."})
     
     def test_payments_list(self): 
         response = self.client.get(reverse('payments_list'))
@@ -105,59 +101,117 @@ class TestTransactionsAPIViews(APITestCase):
     
     # Tests for POST requests
     def test_loan_with_simple_interest_post(self):
-        data = {
-            'user_account': self.first_account.pk, 
+        loans_length = Loan.objects.all().count()
+        data = { 
             'nominal_value': 20000,
             'interest_rate': 5.5,
-            'end_date': '',
+            'end_date': '2021-10-10',
             'bank': 'BRB',
             'client': 'Jon',
             'interest_type': 1
         }
         response = self.client.post(reverse('loans_list'), data)
         last_loan = Loan.objects.last()
-        request_date  = last_loan.request_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ") 
+        request_date  = last_loan.request_date.strftime("%Y-%m-%d") 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data, {'id': last_loan.pk,  
-                                         'nominal_value':'20000.00', 
+                                         'user_account': last_loan.user_account.pk,
+                                         'nominal_value':'20000.00',
+                                         'interest_type':1,
                                          'interest_rate':'5.50', 
                                          'ip_address': last_loan.ip_address,
                                          'request_date': request_date,
-                                         'end_date': None,
+                                         'end_date': '2021-10-10',
                                          'bank':'BRB', 
-                                         'client':'Jon', 
-                                         'interest_type':1, 
-                                         'user_account': self.first_account.pk})
+                                         'client':'Jon',  
+                                         'full_debt': last_loan.get_full_debt, 
+                                         'total_paid': last_loan.get_total_paid, 
+                                         'outstanding_balance': last_loan.get_outstanding_balance})
+        self.assertEqual(Loan.objects.all().count(), loans_length+1)
     
-    def test_loan_with_compound_interest_post(self):
+    def test_loan_post_for_other_users(self):
+        loans_length = Loan.objects.all().count()
         data = {
             'user_account': self.second_account.pk, 
+            'nominal_value': 20000,
+            'interest_rate': 5.5,
+            'end_date': '2021-10-10',
+            'bank': 'BRB',
+            'client': 'Jon',
+            'interest_type': 1
+        }
+        response = self.client.post(reverse('loans_list'), data)
+        last_loan = Loan.objects.last()
+        request_date  = last_loan.request_date.strftime("%Y-%m-%d") 
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data, {'id': last_loan.pk,  
+                                         'user_account': last_loan.user_account.pk,
+                                         'nominal_value':'20000.00',
+                                         'interest_type':1,
+                                         'interest_rate':'5.50', 
+                                         'ip_address': last_loan.ip_address,
+                                         'request_date': request_date,
+                                         'end_date': '2021-10-10',
+                                         'bank':'BRB', 
+                                         'client':'Jon',  
+                                         'full_debt': last_loan.get_full_debt, 
+                                         'total_paid': last_loan.get_total_paid, 
+                                         'outstanding_balance': last_loan.get_outstanding_balance})
+        self.assertEqual(Loan.objects.all().count(), loans_length+1)
+        self.assertEqual(last_loan.user_account, self.first_account)
+    
+    def test_loan_post_with_negative_nominal_value(self):
+        loans_length = Loan.objects.all().count()
+        data = {
+            'user_account': self.first_account.pk, 
+            'nominal_value': -20000,
+            'interest_rate': 5.5,
+            'end_date': '2021-10-10',
+            'bank': 'BRB',
+            'client': 'Jon',
+            'interest_type': 1
+        }
+        response = self.client.post(reverse('loans_list'), data)
+        last_loan = Loan.objects.last()
+        request_date  = last_loan.request_date.strftime("%Y-%m-%d") 
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                                 "The value needs to be greater than zero.")
+    
+    def test_loan_with_compound_interest_post(self):
+        loans_length = Loan.objects.all().count()
+        data = { 
             'nominal_value': 15000,
             'interest_rate': 6.5,
-            'end_date': '2021-05-20T14:50:57.548143Z',
+            'end_date': '2021-05-20',
             'bank': 'BRB',
             'client': 'Jon',
             'interest_type': 2
         }
         response = self.client.post(reverse('loans_list'), data)
         last_loan = Loan.objects.last()
-        request_date  = last_loan.request_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ") 
+        request_date  = last_loan.request_date.strftime("%Y-%m-%d") 
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        self.assertEqual(response.data, {'id': last_loan.pk,  
+        self.assertEqual(response.data, {'id': last_loan.pk,
+                                         'user_account': last_loan.user_account.pk,
                                          'nominal_value':'15000.00', 
+                                         'interest_type':2,
                                          'interest_rate':'6.50', 
                                          'ip_address': last_loan.ip_address,
                                          'request_date': request_date,
-                                         'end_date': '2021-05-20T14:50:57.548143Z',
+                                         'end_date': '2021-05-20',
                                          'bank':'BRB', 
-                                         'client':'Jon', 
-                                         'interest_type':2, 
-                                         'user_account': last_loan.user_account.pk})
+                                         'client':'Jon',  
+                                         'full_debt': last_loan.get_full_debt, 
+                                         'total_paid': last_loan.get_total_paid, 
+                                         'outstanding_balance': last_loan.get_outstanding_balance})
+        self.assertEqual(Loan.objects.all().count(), loans_length+1)
     
     def test_payment_post(self):
+        payments_length = Payment.objects.all().count()
         data = {
             'loan': self.loan.pk, 
-            'date': '2021-05-20T14:50:57.548143Z',
+            'date': '2021-05-20',
             'value': 5000,
         }
         response = self.client.post(reverse('payments_list'), data)
@@ -165,8 +219,45 @@ class TestTransactionsAPIViews(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data, {'id': last_payment.pk,  
                                          'value':'5000.00', 
-                                         'date': '2021-05-20T14:50:57.548143Z', 
-                                         'loan': self.loan.pk})
+                                         'date': '2021-05-20', 
+                                         'loan': last_payment.loan.pk})
+        self.assertEqual(Payment.objects.all().count(), payments_length+1)
+        
+    def test_payment_post_for_other_users_loan(self):
+        payments_length = Payment.objects.all().count()
+        data = {
+            'loan': self.second_loan.pk, 
+            'date': '2021-05-20',
+            'value': 5000,
+        }
+        response = self.client.post(reverse('payments_list'), data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                                 "You need to be the loan's user.")
+    
+    def test_payment_post_bigger_than_loan(self):
+        payments_length = Payment.objects.all().count()
+        data = {
+            'loan': self.loan.pk, 
+            'date': '2021-05-20',
+            'value': 30000,
+        }
+        response = self.client.post(reverse('payments_list'), data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                            "The total paid needs to be less or equal than the full debt.")
+    
+    def test_payment_post_with_negative_value(self):
+        payments_length = Payment.objects.all().count()
+        data = {
+            'loan': self.second_loan.pk, 
+            'date': '2021-05-20',
+            'value': -5000,
+        }
+        response = self.client.post(reverse('payments_list'), data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                                 "The value needs to be greater than zero.")
     
     # Tests for PUT requests
     def test_loan_put(self):
@@ -174,7 +265,7 @@ class TestTransactionsAPIViews(APITestCase):
             'user_account': self.first_account.pk,
             'nominal_value': 25000,
             'interest_rate': 7.5,
-            'end_date': '',
+            'end_date': '2021-10-10',
             'bank': 'BRB',
             'client': 'Jon Snow',
             'interest_type': 1
@@ -183,23 +274,89 @@ class TestTransactionsAPIViews(APITestCase):
                                            args=[self.loan.pk]), 
                                    data)
         loan = Loan.objects.get(pk=self.loan.pk)
-        request_date  = loan.request_date.strftime("%Y-%m-%dT%H:%M:%S.%fZ") 
+        request_date  = loan.request_date.strftime("%Y-%m-%d") 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data, {'id': loan.pk,  
-                                         'nominal_value':'25000.00', 
+        self.assertEqual(response.data, {'id': loan.pk,
+                                         'user_account': self.first_account.pk,
+                                         'nominal_value':'25000.00',
+                                         'interest_type':1,
                                          'interest_rate':'7.50', 
                                          'ip_address': loan.ip_address,
                                          'request_date': request_date,
-                                         'end_date': None,
+                                         'end_date': '2021-10-10',
                                          'bank':'BRB', 
                                          'client':'Jon Snow', 
-                                         'interest_type':1, 
-                                         'user_account': self.first_account.pk})
+                                         'full_debt': loan.get_full_debt, 
+                                         'total_paid': loan.get_total_paid, 
+                                         'outstanding_balance': loan.get_outstanding_balance})
+        
+    def test_loan_put_with_nominal_value_less_than_total_paid(self):
+        data = {
+            'nominal_value': 2000,
+            'interest_rate': 7.5,
+            'end_date': '2021-10-10',
+            'bank': 'BRB',
+            'client': 'Jon Snow',
+            'interest_type': 1
+        }
+        response = self.client.put(reverse('loan_detail', 
+                                           args=[self.loan.pk]), 
+                                   data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                                 "The nominal value can't be less than the total paid.")
+    
+    def test_loan_put_with_negative_nominal_value(self):
+        data = {
+            'nominal_value': -2000,
+            'interest_rate': 7.5,
+            'end_date': '2021-10-10',
+            'bank': 'BRB',
+            'client': 'Jon Snow',
+            'interest_type': 1
+        }
+        response = self.client.put(reverse('loan_detail', 
+                                           args=[self.loan.pk]), 
+                                   data) 
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                                 "The value needs to be greater than zero.")
+    
+    def test_loan_put_for_other_users(self):
+        data = {
+            'user_account': self.second_account.pk,
+            'nominal_value': 20000,
+            'interest_rate': 7.5,
+            'end_date': '2021-10-10',
+            'bank': 'BRB',
+            'client': 'Jon Snow',
+            'interest_type': 1
+        }
+        response = self.client.put(reverse('loan_detail', 
+                                           args=[self.loan.pk]), 
+                                   data)
+        loan = Loan.objects.get(pk=self.loan.pk)
+        request_date  = loan.request_date.strftime("%Y-%m-%d")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data, {'id': loan.pk,
+                                         'user_account': self.first_account.pk,
+                                         'nominal_value':'20000.00',
+                                         'interest_type':1,
+                                         'interest_rate':'7.50', 
+                                         'ip_address': loan.ip_address,
+                                         'request_date': request_date,
+                                         'end_date': '2021-10-10',
+                                         'bank':'BRB', 
+                                         'client':'Jon Snow', 
+                                         'full_debt': loan.get_full_debt, 
+                                         'total_paid': loan.get_total_paid, 
+                                         'outstanding_balance': loan.get_outstanding_balance})
+        self.assertEqual(loan.user_account, self.first_account)
     
     def test_payment_put(self):
         data = {
             'loan': self.loan.pk, 
-            'date': '2021-06-20T14:50:57.548143Z',
+            'date': '2021-06-20',
             'value': 7000,
         }
         response = self.client.put(reverse('payment_detail', 
@@ -209,22 +366,61 @@ class TestTransactionsAPIViews(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, {'id': payment.pk,  
                                          'value':'7000.00', 
-                                         'date': '2021-06-20T14:50:57.548143Z', 
-                                         'loan': self.loan.pk})
+                                         'date': '2021-06-20', 
+                                         'loan': payment.loan.pk})
+    
+    def test_payment_put_with_value_bigger_than_loan(self):
+        data = {
+            'loan': self.loan.pk, 
+            'date': '2021-06-20',
+            'value': 30000,
+        }
+        response = self.client.put(reverse('payment_detail', 
+                                           args=[self.payment.pk]), 
+                                   data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                                 "The total paid needs to be less or equal than the full debt.")
+    
+    def test_payment_put_with_negative_value(self):
+        data = {
+            'loan': self.loan.pk, 
+            'date': '2021-06-20',
+            'value': -3000,
+        }
+        response = self.client.put(reverse('payment_detail', 
+                                           args=[self.payment.pk]), 
+                                   data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                                 "The value needs to be greater than zero.")
+    
+    def test_payment_put_to_other_users_loan(self):
+        data = {
+            'loan': self.second_loan.pk, 
+            'date': '2021-06-20',
+            'value': 3000,
+        }
+        response = self.client.put(reverse('payment_detail', 
+                                           args=[self.payment.pk]), 
+                                   data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertRaisesMessage(response.data, 
+                                 "You need to be the loan's user.")
     
     # Tests for DELETE requests
     def test_loan_delete(self):
-        loans_length = len(Loan.objects.all())
+        loans_length = Loan.objects.all().count()
         response = self.client.delete(reverse('loan_detail', 
                                            args=[self.loan.pk]))
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(len(Loan.objects.all()), loans_length-1)
+        self.assertEqual(Loan.objects.all().count(), loans_length-1)
     
     def test_payment_delete(self):
-        payments_length = len(Payment.objects.all())
+        payments_length = Payment.objects.all().count()
         response = self.client.delete(reverse('payment_detail', 
                                            args=[self.payment.pk]))
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
-        self.assertEqual(len(Payment.objects.all()), payments_length-1)
+        self.assertEqual(Payment.objects.all().count(), payments_length-1)
         
         

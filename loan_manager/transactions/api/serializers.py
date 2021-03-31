@@ -44,6 +44,22 @@ class LoanSerializer(serializers.ModelSerializer):
     def get_outstanding_balance(self, obj):
         return obj.get_outstanding_balance
                  
+    def validate(self, data):
+        instance = getattr(self, 'instance', None)
+        if instance:
+            if data['nominal_value'] < instance.get_total_paid:
+                raise serializers.ValidationError(
+                    {'detail':"The nominal value can't be less than the total paid."}
+                )
+        return data
+    
+    def validate_nominal_value(self, value):
+        if value <= 0:
+            raise serializers.ValidationError(
+                {'detail':"The value needs to be greater than zero."}
+            )
+        return value
+    
     def create(self, validated_data):
         if self.is_valid():
             ip_address = get_client_ip(self.context['request'])[0]

@@ -1,16 +1,10 @@
 # Libs imports
-import socket
 import datetime
 
 # Django imports
 from django.db import models
 from django.db.models import Sum
 
-
-def current_ip_address():
-    hostname = socket.gethostname()
-    ip_address = socket.gethostbyname(hostname)
-    return ip_address
 
 class Loan(models.Model):
     class InterestType(models.IntegerChoices):

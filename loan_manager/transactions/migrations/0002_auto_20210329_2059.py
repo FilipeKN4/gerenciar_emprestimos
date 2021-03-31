@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
         migrations.AlterField(
             model_name='loan',
             name='ip_address',
-            field=models.CharField(default=transactions.models.current_ip_address, max_length=30),
+            field=models.CharField(max_length=30),
         ),
         migrations.AlterField(
             model_name='payment',
