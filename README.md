@@ -136,7 +136,9 @@ O corpo das requisições dos tipos __POST/PUT__ do projeto seguem os seguintes 
     {
         "username": "jon@email.com", 
         "email": "jon",
-        "password": "123"
+        "password": "123",
+        "first_name": "Jon",
+        "last_name": "Snow"
     }
 
 - /account/accounts/1/
@@ -144,7 +146,10 @@ O corpo das requisições dos tipos __POST/PUT__ do projeto seguem os seguintes 
     {
         "username": "jon_snow@email.com", 
         "email": "jon_snow",
-        "password": "1234"
+        "password": "1234",
+        "first_name": "Jon",
+        "last_name": "Snow",
+        "is_active": "True"
     }
 ```
 
@@ -154,10 +159,9 @@ O corpo das requisições dos tipos __POST/PUT__ do projeto seguem os seguintes 
 - /loans/
 
     {
-        'user_account': self.first_account.pk, 
         'nominal_value': 20000,
         'interest_rate': 5.5,
-        'end_date': '',
+        'end_date': '20-10-20',
         'bank': 'BRB',
         'client': 'Jon',
         'interest_type': 1
@@ -166,10 +170,9 @@ O corpo das requisições dos tipos __POST/PUT__ do projeto seguem os seguintes 
 - /loans/1/
 
     {
-        'user_account': 1,
         'nominal_value': 25000,
         'interest_rate': 7.5,
-        'end_date': '',
+        'end_date': '20-11-20',
         'bank': 'BRB',
         'client': 'Jon Snow',
         'interest_type': 1
@@ -183,7 +186,7 @@ O corpo das requisições dos tipos __POST/PUT__ do projeto seguem os seguintes 
 
     {
         'loan': 1, 
-        'date': '2021-05-20T14:50:57.548143Z',
+        'date': '2021-05-20',
         'value': 5000,
     }
 
@@ -191,7 +194,7 @@ O corpo das requisições dos tipos __POST/PUT__ do projeto seguem os seguintes 
 
     {
         'loan': 1, 
-        'date': '2021-06-20T14:50:57.548143Z',
+        'date': '2021-06-20',
         'value': 7000,
     }
 ```
@@ -203,3 +206,4 @@ Para a realização desse projeto foram utilizadas as seguintes bibliotecas:
 * [Django](https://www.djangoproject.com/)
 * [DJango REST framework](https://www.django-rest-framework.org/)
 * [Coverage](https://coverage.readthedocs.io/en/coverage-5.5/)
+* [django-ipware](https://pypi.org/project/django-ipware/)
