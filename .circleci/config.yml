@@ -1,31 +1,51 @@
 version: 2.1
 
-executors:
-  python-executor:
-    docker:
-      - image: circleci/python:3.9.6  # Defina a versão do Python
-    working_directory: ~/repo/loan_manager
+# executors:
+#   python-executor:
+#     docker:
+#       - image: circleci/python:3.9.6  # Defina a versão do Python
+#     working_directory: ~/repo
 
 jobs:
-  test:
-    executor: python-executor
+  test-and-lint:
+    working_directory: ~/loan_manager
+    # executor: python-executor
+    docker:
+      - image: circleci/python:3.9.6  # Defina a versão do Python
     steps:
-      - checkout  # Faz o checkout do código do seu repositório
+      - checkout  # Busca o código fonte do seu repositório por SSH na pasta indicada
+      - restore_cache: # Restaura um cache previamente salvo
+          key: deps1-{{ .Branch }}-{{ checksum "./loan_manager/requirements.txt" }}
       - run:
           name: Install dependencies
           command: |
             python -m venv venv
             . venv/bin/activate
-            pip install -U pip
-            pip install -r requirements.txt
+            pip install -r ./loan_manager/requirements.txt
+      - save_cache: # Salva um cache das dependências do projeto obtidas após rodar o 'pip install'
+          key: deps1-{{ .Branch }}-{{ checksum "./loan_manager/requirements.txt" }}
+          paths:
+            - "venv"
+          # command: |
+          #   pip install --upgrade pip
+          #   pip install -r ./loan_manager/requirements.txt
+
+      # Corrigir para fazer funcionar
+      # - run:
+      #     name: Lint
+      #     command: pylint ./loan_manager/loan_manager ./loan_manager/transactions/
+
       - run:
           name: Run Django Tests
           command: |
             . venv/bin/activate
-            python manage.py test
+            python3 loan_manager/manage.py test loan_manager --keep
+      - store_artifacts: # Salva logs, binários e outros para serem acessados pelo apps em futuras execuções
+          path: test-reports/
+          destination: loan_manager_app
 
 workflows:
   version: 2
   test:
     jobs:
-      - test
+      - test-and-lint
