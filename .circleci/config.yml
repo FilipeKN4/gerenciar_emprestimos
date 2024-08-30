@@ -1,0 +1,31 @@
+version: 2.1
+
+executors:
+  python-executor:
+    docker:
+      - image: circleci/python:3.9.6  # Defina a versão do Python
+    working_directory: ~/repo-filipao
+
+jobs:
+  test:
+    executor: python-executor
+    steps:
+      - checkout  # Faz o checkout do código do seu repositório
+      - run:
+          name: Install dependencies
+          command: |
+            python -m venv venv
+            . venv/bin/activate
+            pip install -U pip
+            pip install -r requirements.txt
+      - run:
+          name: Run Django Tests
+          command: |
+            . venv/bin/activate
+            python manage.py test
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test

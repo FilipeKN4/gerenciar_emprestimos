@@ -4,9 +4,9 @@ services:
   django:
     build: ./loan_manager/
     image: loan_manager_django
-    command: ./manage.py runserver 0.0.0.0:8000
-    ports: 
-      - "8000:8000"
+    command: ./manage.py runserver 0.0.0.0:3000
+    ports:
+      - "3000:3000"
     container_name: loan_manager_django
     volumes: 
       - ./loan_manager/:/usr/app
@@ -14,7 +14,7 @@ services:
       - db
   
   db:
-    image: postgres:13
+    image: postgres:13.0-alpine
     environment: 
       - POSTGRES_DB=loan_manager_db
       - POSTGRES_USER=postgres

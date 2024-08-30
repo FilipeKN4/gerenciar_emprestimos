@@ -25,7 +25,7 @@ SECRET_KEY = '&z$fuxt(_pp*dzzp!0!bd_-*ruwj=y4o*1t&i#1($!(4n5tne)'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['0.0.0.0']
 
 
 # Application definition
