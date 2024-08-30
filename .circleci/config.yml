@@ -4,7 +4,7 @@ executors:
   python-executor:
     docker:
       - image: circleci/python:3.9.6  # Defina a versão do Python
-    working_directory: ~/repo-filipao
+    working_directory: ~/repo/loan_manager
 
 jobs:
   test:
