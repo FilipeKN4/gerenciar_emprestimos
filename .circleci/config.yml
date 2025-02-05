@@ -11,7 +11,10 @@ jobs:
     working_directory: ~/loan_manager
     # executor: python-executor
     docker:
-      - image: circleci/python:3.9.6  # Defina a versão do Python
+      - image: cimg/python:3.9.6  # Defina a versão do Python
+      - image: cimg/postgres:14.1  # Define a versão do Postgres
+        environment:
+          POSTGRES_USER: postgres
     steps:
       - checkout  # Busca o código fonte do seu repositório por SSH na pasta indicada
       - restore_cache: # Restaura um cache previamente salvo
