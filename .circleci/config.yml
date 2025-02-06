@@ -1,49 +1,46 @@
 version: 2.1
 
-# executors:
-#   python-executor:
-#     docker:
-#       - image: circleci/python:3.9.6  # Defina a versão do Python
-#     working_directory: ~/repo
-
 jobs:
   test-and-lint:
     working_directory: ~/loan_manager
-    # executor: python-executor
     docker:
       - image: cimg/python:3.9.6  # Defina a versão do Python
       - image: cimg/postgres:14.1  # Define a versão do Postgres
         environment:
+          # Se certificar do HOST do banco estar configurado como 'localhost'
           POSTGRES_USER: postgres
     steps:
-      - checkout  # Busca o código fonte do seu repositório por SSH na pasta indicada
-      - restore_cache: # Restaura um cache previamente salvo
+      # Busca o código fonte do seu repositório por SSH na pasta indicada
+      - checkout
+      # Restaura um cache previamente salvo
+      - restore_cache:
           key: deps1-{{ .Branch }}-{{ checksum "./loan_manager/requirements.txt" }}
       - run:
           name: Install dependencies
           command: |
             python -m venv venv
             . venv/bin/activate
+            pip install --upgrade pip
             pip install -r ./loan_manager/requirements.txt
-      - save_cache: # Salva um cache das dependências do projeto obtidas após rodar o 'pip install'
+       # Salva um cache das dependências do projeto obtidas após rodar o 'pip install'
+      - save_cache:
           key: deps1-{{ .Branch }}-{{ checksum "./loan_manager/requirements.txt" }}
           paths:
-            - "venv"
-          # command: |
-          #   pip install --upgrade pip
-          #   pip install -r ./loan_manager/requirements.txt
-
-      # Corrigir para fazer funcionar
-      # - run:
-      #     name: Lint
-      #     command: pylint ./loan_manager/loan_manager ./loan_manager/transactions/
-
+            - venv
+      # Executa teste de linting
+      - run:
+          name: Test Lint
+          command: |
+            . venv/bin/activate
+            pylint --rcfile=./loan_manager/pylintrc ./loan_manager/account ./loan_manager/transactions
+      # Executa testes unitários
       - run:
           name: Run Django Tests
           command: |
             . venv/bin/activate
-            python3 loan_manager/manage.py test loan_manager --keep
-      - store_artifacts: # Salva logs, binários e outros para serem acessados pelo apps em futuras execuções
+            python3 loan_manager/manage.py test
+      # Salva logs, binários e outros para serem acessados pelo apps em futuras execuções
+      - store_artifacts:
           path: test-reports/
           destination: loan_manager_app
 

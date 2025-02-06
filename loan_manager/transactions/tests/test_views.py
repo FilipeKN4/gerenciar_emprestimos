@@ -110,7 +110,7 @@ class TestTransactionsAPIViews(APITestCase):
         year = datetime.date.today().year
         month = datetime.date.today().month
         date = '{}-{}-10'.format(year+1, month)
-        data = { 
+        data = {
             'nominal_value': 20000,
             'interest_rate': 5.5,
             'end_date': date,
@@ -214,7 +214,7 @@ class TestTransactionsAPIViews(APITestCase):
         year = datetime.date.today().year
         month = datetime.date.today().month
         date = '{}-{}-20'.format(year+1, month)
-        data = { 
+        data = {
             'nominal_value': 15000,
             'interest_rate': 6.5,
             'end_date': date,

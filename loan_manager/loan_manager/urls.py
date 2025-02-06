@@ -12,14 +12,14 @@ route.register(r'accounts', account_viewsets.AccountViewSet)
 
 urlpatterns = [
     # User authentication
-    path('admin/', 
+    path('admin/',
          admin.site.urls),
-    path('login/', 
+    path('login/',
          obtain_auth_token, name='login'),
 
     # Apps urls
-    path('', 
+    path('',
          include('transactions.urls')),
-    path('account/', 
+    path('account/',
          include(route.urls))
 ]

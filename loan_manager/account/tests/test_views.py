@@ -25,7 +25,7 @@ class TestAccount(APITestCase):
 
     def test_user_login(self):
         self.client.logout()
-        response = self.client.post('/login/', {'username': 'teste@mail.com', 
+        response = self.client.post('/login/', {'username': 'teste@mail.com',
                                                 'password': 'password123'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -33,11 +33,11 @@ class TestAccount(APITestCase):
     def test_accounts_list(self):
         response = self.client.get('/account/accounts/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
- 
+
     def test_accounts_get(self):
-        response = self.client.get('/account/accounts/{}/'.format(self.account.id))
+        response = self.client.get(f'/account/accounts/{self.account.id}/')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-    
+
     # Tests for POST and PUT requests
     def test_account_post(self):
         accounts_length = Account.objects.all().count()
@@ -73,8 +73,7 @@ class TestAccount(APITestCase):
             'is_active': True
         }
 
-        response = self.client.put('/account/accounts/{}/'.format(self.account.id),
-                                   data)
+        response = self.client.put(f'/account/accounts/{self.account.id}/', data)
         last_account = Account.objects.last()
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data, {'id': last_account.id,
@@ -90,6 +89,6 @@ class TestAccount(APITestCase):
     # Tests for DELETE requests
     def test_account_delete(self):
         accounts_length = Account.objects.all().count()
-        response = self.client.delete('/account/accounts/{}/'.format(self.account.id))
+        response = self.client.delete(f'/account/accounts/{self.account.id}/')
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertEqual(Account.objects.all().count(), accounts_length-1)

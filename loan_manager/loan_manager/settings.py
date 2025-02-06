@@ -11,10 +11,13 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
 import os
+from decouple import Config, RepositoryEnv
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+# Take environment variables from .env file
+env_config = Config(RepositoryEnv(os.path.join(BASE_DIR, '.env')))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
@@ -34,7 +37,7 @@ INSTALLED_APPS = [
     # My apps
     'account',
     'transactions',
-    
+
     # Django apps
     'django.contrib.admin',
     'django.contrib.auth',
@@ -91,11 +94,11 @@ WSGI_APPLICATION = 'loan_manager.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'loan_manager_db',
-        'USER': 'postgres',
-        'PASSWORD': 'postgres',
-        'HOST': 'localhost',
-        'PORT': 5432,
+        'NAME': env_config('DB_NAME', default='loan_manager_db'),
+        'USER': env_config('DB_USER', default='postgres'),
+        'PASSWORD': env_config('DB_PASSWORD', default='postgres'),
+        'HOST': env_config('DB_HOST', default='localhost'),
+        'PORT': env_config('DB_PORT', default='5432'),
     }
 }
 

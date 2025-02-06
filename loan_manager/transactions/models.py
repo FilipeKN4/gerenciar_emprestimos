@@ -26,9 +26,7 @@ class Loan(models.Model):
                                         default=InterestType.SIMPLE)
 
     def __str__(self):
-        return 'Loan from {} to {} on value of {}'.format(self.bank,
-                                                     self.client,
-                                                     self.nominal_value)
+        return f'Loan from {self.bank} to {self.client} on value of {self.nominal_value}'
 
     @property
     def get_months_difference(self):
@@ -74,6 +72,4 @@ class Payment(models.Model):
                                 decimal_places=2)
 
     def __str__(self):
-        return 'Payment from {} to {} on value of {}'.format(self.loan.client,
-                                                             self.loan.bank,
-                                                             self.value)
+        return f'Payment from {self.loan.client} to {self.loan.bank} on value of {self.value}'

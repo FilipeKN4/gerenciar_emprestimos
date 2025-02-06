@@ -6,4 +6,3 @@ from account.models import Account
 
 
 admin.site.register(Account)
-
