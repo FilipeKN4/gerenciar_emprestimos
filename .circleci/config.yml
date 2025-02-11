@@ -32,7 +32,7 @@ jobs:
           name: Test Lint
           command: |
             . venv/bin/activate
-            pylint --rcfile=./loan_manager/pylintrc ./loan_manager/account ./loan_manager/transactions
+            pylint --rcfile=./loan_manager/pylintrc --fail-under=8.0 ./loan_manager/account ./loan_manager/transactions
       # Executa testes unitários
       - run:
           name: Run Django Tests
