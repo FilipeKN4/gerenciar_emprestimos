@@ -38,7 +38,7 @@ jobs:
           name: Run Django Tests
           command: |
             . venv/bin/activate
-            python3 loan_manager/manage.py test
+            python3 loan_manager/manage.py test loan_manager --keep
       # Salva logs, binários e outros para serem acessados pelo apps em futuras execuções
       - store_artifacts:
           path: test-reports/
