@@ -18,9 +18,8 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            python -m venv venv
+            python3 -m venv venv
             . venv/bin/activate
-            pip install --upgrade pip
             pip install -r ./loan_manager/requirements.txt
        # Salva um cache das dependências do projeto obtidas após rodar o 'pip install'
       - save_cache:
@@ -44,8 +43,26 @@ jobs:
           path: test-reports/
           destination: loan_manager_app
 
+  build-and-push-to-dockerhub:
+    docker:
+      - image: cimg/base:2024.02  # Defina a versão do Python
+    steps:
+      # Busca o código fonte do seu repositório por SSH na pasta indicada
+      - checkout
+      - setup_remote_docker
+      # Realiza o build, login e push da imagem gerada para o Docker Hub
+      - run:
+          name: Build and push to Docker Hub
+          command: |
+            docker build -t $DOCKER_HUB_USER_ID/$IMAGE_NAME:latest ./loan_manager
+            echo "$DOCKER_HUB_PASSWORD" | docker login -u "$DOCKER_HUB_USER_ID" --password-stdin
+            docker push $DOCKER_HUB_USER_ID/$IMAGE_NAME:latest
+
 workflows:
   version: 2
-  test:
+  build-main:
     jobs:
       - test-and-lint
+      - build-and-push-to-dockerhub:
+          requires:
+            - test-and-lint
