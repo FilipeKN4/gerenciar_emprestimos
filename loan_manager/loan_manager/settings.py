@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
+    'channels'
 ]
 
 REST_FRAMEWORK = {
@@ -141,3 +142,34 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
+
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# Redis
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": (config('REDIS_HOST'), config('REDIS_PORT')),
+        },
+    },
+}
+
+CACHES = {
+    "alternate": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://:@redis:6379/1",
+        "OPTIONS": {
+            "DB": 1,
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    },
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": "redis://:@redis:6379/1",
+        "OPTIONS": {
+            "DB": 2,
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        }
+    }
+}

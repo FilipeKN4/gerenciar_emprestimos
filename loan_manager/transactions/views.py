@@ -1,5 +1,8 @@
 # Django imports
 from django.http import Http404
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import cache_page
+
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
@@ -30,7 +33,7 @@ class TransactionsOverview(APIView):
         transactions_urls = {
             "loans": loan_urls,
             "payments": payment_urls,
-        }     
+        }
 
         return Response(transactions_urls)
 
@@ -40,6 +43,7 @@ class LoansList(APIView):
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated]
 
+    @method_decorator(cache_page(60 * 15, key_prefix='loan_list'))
     def get(self, request, format=None):
         if request.user.is_admin:
             loans = Loan.objects.all()
@@ -69,6 +73,7 @@ class LoanDetail(APIView):
         except Loan.DoesNotExist:
             raise Http404
 
+    @method_decorator(cache_page(60 * 15, key_prefix='loan_detail'))
     def get(self, request, pk, format=None):
         loan = self.get_object(pk)
         if loan.user_account != request.user and not request.user.is_admin:
@@ -111,6 +116,7 @@ class PaymentsPerLoan(APIView):
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated]
 
+    @method_decorator(cache_page(60 * 15, key_prefix='paymentsperloan_list'))
     def get(self, request, pk, format=None):
         loan = Loan.objects.get(pk=pk)
         if loan.user_account != request.user and not request.user.is_admin:
@@ -129,6 +135,7 @@ class PaymentsList(APIView):
     pagination_class = PageNumberPagination
     permission_classes = [IsAuthenticated]
 
+    @method_decorator(cache_page(60 * 15, key_prefix='payment_list'))
     def get(self, request, format=None):
         if request.user.is_admin:
             payments = Payment.objects.all()
@@ -158,6 +165,7 @@ class PaymentDetail(APIView):
         except Payment.DoesNotExist:
             raise Http404
 
+    @method_decorator(cache_page(60 * 15, key_prefix='payment_detail'))
     def get(self, request, pk, format=None):
         payment = self.get_object(pk)
         if payment.loan.user_account != request.user and not request.user.is_admin:
