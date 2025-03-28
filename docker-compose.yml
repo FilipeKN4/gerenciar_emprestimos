@@ -8,19 +8,19 @@ services:
     ports:
       - 3000:3000
     container_name: loan_manager_django
-    volumes: 
+    volumes:
       - ./loan_manager/:/usr/app
-    depends_on: 
+    depends_on:
       - db
   
   db:
     image: postgres:14.1-alpine
-    environment: 
+    environment:
       - POSTGRES_DB=loan_manager_db
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data/
 
-volumes: 
+volumes:
   postgres_data:

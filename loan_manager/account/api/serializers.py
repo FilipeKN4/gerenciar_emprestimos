@@ -8,21 +8,21 @@ from account.models import Account
 class AccountSerializer(serializers.HyperlinkedModelSerializer):
     is_admin = serializers.BooleanField()
     is_active = serializers.BooleanField()
-    
+
     class Meta:
         model = Account
         fields = ['id',
-                  'email', 
-                  'username', 
-                  'password', 
-                  'first_name', 
+                  'email',
+                  'username',
+                  'password',
+                  'first_name',
                   'last_name',
-                  'is_admin', 
-                  'is_active', 
-                  'is_staff', 
+                  'is_admin',
+                  'is_active',
+                  'is_staff',
                   'is_superuser']
-        read_only_fields = ['id', 
-                            'is_staff', 
+        read_only_fields = ['id',
+                            'is_staff',
                             'is_superuser']
         extra_kwargs = {'password': {'write_only': True}}
 
@@ -42,7 +42,7 @@ class AccountSerializer(serializers.HyperlinkedModelSerializer):
         user_account.first_name = validated_data['first_name']
         user_account.last_name = validated_data['last_name']
         return user_account
-    
+
     def update(self, instance, validated_data):
         if validated_data['is_admin']:
             instance.is_admin = validated_data['is_admin']

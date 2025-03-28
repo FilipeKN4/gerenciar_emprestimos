@@ -14,5 +14,5 @@ class AccountViewSet(viewsets.ModelViewSet):
     queryset = Account.objects.all().order_by('-date_joined')
     serializer_class = serializers.AccountSerializer
     authentication_classes = [TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated, 
+    permission_classes = [permissions.IsAuthenticated,
                           permissions.IsAdminUser]
