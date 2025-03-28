@@ -1,0 +1,19 @@
+name: Pull Request Labeler
+
+on:
+  pull_request:
+    branches:
+      - main
+    types:
+      - opened
+
+jobs:
+  label_pull_request:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Add label to new pull request
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.html_url }}
+        run: |
+          gh pr edit $PR --add-label 'enhancement'
