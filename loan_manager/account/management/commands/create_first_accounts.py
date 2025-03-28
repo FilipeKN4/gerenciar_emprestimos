@@ -7,7 +7,7 @@ from account.models import Account
 
 class Command(BaseCommand):
     help = 'Create some user accounts'
-    
+
     def handle(self, *args, **options):
         # Admin
         Account.objects.create_superuser(
@@ -15,7 +15,7 @@ class Command(BaseCommand):
             username='admin_test',
             password='123'
         )
-        
+
         # Commom users
         Account.objects.create_user(
             email='joao_mcenroe@teste.com',

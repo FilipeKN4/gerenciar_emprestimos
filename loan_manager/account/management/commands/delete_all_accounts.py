@@ -7,7 +7,7 @@ from account.models import Account
 
 class Command(BaseCommand):
     help = 'Delete all accounts'
-    
+
     def handle(self, *args, **options):
         Account.objects.all().delete()
         Token.objects.all().delete()
