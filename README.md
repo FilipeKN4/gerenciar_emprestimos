@@ -207,3 +207,4 @@ Para a realização desse projeto foram utilizadas as seguintes bibliotecas:
 * [DJango REST framework](https://www.django-rest-framework.org/)
 * [Coverage](https://coverage.readthedocs.io/en/coverage-5.5/)
 * [django-ipware](https://pypi.org/project/django-ipware/)
+* [django-redis](https://pypi.org/project/django-redis/)
