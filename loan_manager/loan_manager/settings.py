@@ -70,6 +70,19 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
+TESTING = "test" in sys.argv
+if not TESTING:
+    INSTALLED_APPS = [
+        *INSTALLED_APPS,
+        'silk'
+    ]
+    MIDDLEWARE = [
+        *MIDDLEWARE,
+        'silk.middleware.SilkyMiddleware',
+    ]
+
+    SILKY_PYTHON_PROFILER = True
+
 ROOT_URLCONF = 'loan_manager.urls'
 
 TEMPLATES = [
@@ -147,7 +160,7 @@ STATIC_URL = '/static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Redis
-if 'test' in sys.argv:
+if TESTING:
     CHANNEL_LAYERS = {}
 
     CACHES = {

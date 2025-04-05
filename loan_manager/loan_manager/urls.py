@@ -1,6 +1,8 @@
 # Django imports
+from django.conf import settings
 from django.contrib import admin
 from django.urls import path, include
+
 from rest_framework import routers
 from rest_framework.authtoken.views import obtain_auth_token
 
@@ -23,3 +25,6 @@ urlpatterns = [
     path('account/',
          include(route.urls))
 ]
+
+if settings.DEBUG:
+    urlpatterns += [path('silk/', include('silk.urls', namespace='silk'))]
